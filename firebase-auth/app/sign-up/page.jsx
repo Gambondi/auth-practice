@@ -14,6 +14,7 @@ function SignUp() {
     try {
         const res = await createUserWithEmailAndPassword(email, password)
         console.log({res})
+        sessionStorage.setItem('user',true);
         setEmail('')
         setPassword('')
     } catch(e) {
@@ -24,6 +25,11 @@ function SignUp() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+      <img 
+          src="/Images/blackbrewlogo.png" 
+          alt="Logo"
+          className="mx-auto size-28" 
+        />
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
           Create Your Account
         </h2>
@@ -37,7 +43,7 @@ function SignUp() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 block w-full"
+              className="mt-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 block w-full text-black"
               placeholder="Enter your email"
             />
           </div>
@@ -50,7 +56,7 @@ function SignUp() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="mt-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 block w-full"
+              className="mt-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 block w-full text-black"
               placeholder="Enter your password"
             />
           </div>
@@ -63,13 +69,13 @@ function SignUp() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="mt-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 block w-full"
+              className="mt-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 block w-full text-black"
               placeholder="Confirm your password"
             />
           </div>
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg shadow hover:bg-indigo-700 transition duration-300"
+            className="w-full bg-gray-950 text-white py-2 px-4 rounded-lg shadow hover:bg-indigo-700 transition duration-300"
           >
             Sign Up
           </button>
@@ -78,7 +84,7 @@ function SignUp() {
           Already have an account?{' '}
           <a
             href="#"
-            className="text-indigo-600 hover:text-indigo-500 transition duration-300"
+            className="text-gray-950 hover:text-indigo-500 transition duration-300"
           >
             Log in
           </a>
