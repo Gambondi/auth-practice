@@ -14,11 +14,17 @@ function SignIn() {
     e.preventDefault();
     try {
         const res = await signInWithEmailAndPassword(email, password);
-        console.log({ res });
-        sessionStorage.setItem('user',true);
+        console.log('sign in response:',res);
+
+        if (!res) {
+          console.error('Sign-in failed, no user returned.');
+          return;
+        }
+
+        sessionStorage.setItem('user', true);
         setEmail('');
         setPassword('');
-        router.push('/')
+        router.push('../inventory')
     } catch (e) {
         console.error(e);
     }

@@ -1,24 +1,31 @@
 'use client'
 import { useState } from 'react';
-import {useCreateUserWithEmailAndPassword} from 'react-firebase-hooks/auth';
-import {auth} from '@/app/firebase/config';
+import { useCreateUserWithEmailAndPassword} from 'react-firebase-hooks/auth';
+import { auth } from '@/app/firebase/config';
+import { useRouter } from 'next/navigation'
 
 function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [createUserWithEmailAndPassword, user, loading, error] = useCreateUserWithEmailAndPassword(auth);
+  const router = useRouter();
 
-  const [createUserWithEmailAndPassword] = useCreateUserWithEmailAndPassword(auth);
-
-  const handleSubmit = async() => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
-        const res = await createUserWithEmailAndPassword(email, password)
-        console.log({res})
-        sessionStorage.setItem('user',true);
-        setEmail('')
-        setPassword('')
-    } catch(e) {
-        console.error(e)
+      // Set persistence so the user stays signed in after creating the account
+      await setPersistence(auth, browserLocalPersistence);
+      const res = await createUserWithEmailAndPassword(email, password);
+      console.log({ res });
+      
+      // Clear the form fields
+      setEmail('');
+      setPassword('');
+      
+      // Redirect to the home page after successful account creation
+      router.push('/');
+    } catch (e) {
+      console.error('Error creating account:', e);
     }
   };
 
