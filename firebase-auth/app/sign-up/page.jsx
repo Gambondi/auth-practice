@@ -83,7 +83,7 @@ function SignUp() {
         <p className="text-center text-sm text-gray-600 mt-6">
           Already have an account?{' '}
           <a
-            href="#"
+            href="../sign-in"
             className="text-gray-950 hover:text-indigo-500 transition duration-300"
           >
             Log in

@@ -15,6 +15,7 @@ function SignIn() {
     try {
         const res = await signInWithEmailAndPassword(email, password);
         console.log({ res });
+        sessionStorage.setItem('user',true);
         setEmail('');
         setPassword('');
         router.push('/')
@@ -71,7 +72,7 @@ function SignIn() {
         <p className="text-center text-sm text-gray-600 mt-6">
           Don't have an account?{' '}
           <a
-            href="#"
+            href="../sign-up"
             className="text-gray-950 hover:text-indigo-500 transition duration-300"
           >
             Sign up
