@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/app/firebase/config';
 import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { FaHome, FaPlus, FaStore, FaSignOutAlt, FaEllipsisV } from 'react-icons/fa';
+import { FaHome, FaPlus, FaStore, FaSignOutAlt, FaEllipsisV, FaBars } from 'react-icons/fa';
 import { signOut } from 'firebase/auth';
 
 function ManagerDashboard() {
@@ -14,7 +14,7 @@ function ManagerDashboard() {
   const [stores, setStores] = useState([]);
   const [selectedStore, setSelectedStore] = useState('');
   const [shelves, setShelves] = useState([]);
-  const [showShelfOptions, setShowShelfOptions] = useState(null); // Shelf options state
+  const [showShelfOptions, setShowShelfOptions] = useState(null);
   const [editingShelf, setEditingShelf] = useState(null);
   const [newShelfName, setNewShelfName] = useState('');
   const [newStoreName, setNewStoreName] = useState('');
@@ -23,13 +23,14 @@ function ManagerDashboard() {
   const [currentShelfId, setCurrentShelfId] = useState('');
   const [newItemName, setNewItemName] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('');
-  const [editingStore, setEditingStore] = useState(null); // Edit store state
-  const [showStoreOptions, setShowStoreOptions] = useState(null); // Store options state
+  const [editingStore, setEditingStore] = useState(null);
+  const [showStoreOptions, setShowStoreOptions] = useState(null);
   const [isAddShelfModalOpen, setIsAddShelfModalOpen] = useState(false);
   const [shelfItems, setShelfItems] = useState([{ name: '', quantity: '' }]);
   const [isAddStoreModalOpen, setIsAddStoreModalOpen] = useState(false);
-  
-  
+  const [isNavOpen, setIsNavOpen] = useState(true);
+  const [viewMode, setViewMode] = useState('grid');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -62,9 +63,15 @@ function ManagerDashboard() {
             ...doc.data(),
             items: [], // Initialize items to avoid undefined
           }));
+
+          shelvesData.sort((a, b) => {
+            if (a.name.toLowerCase() < b.name.toLowerCase()) return -1;
+            if (a.name.toLowerCase() > b.name.toLowerCase()) return 1;
+            return 0;
+          });
+
           setShelves(shelvesData);
 
-          // Listen for real-time updates to each shelf's items
           shelvesData.forEach(shelf => {
             const itemsUnsub = onSnapshot(
               collection(db, 'stores', selectedStore, 'shelves', shelf.id, 'items'),
@@ -112,6 +119,13 @@ function ManagerDashboard() {
     if (confirm("Are you sure you want to delete this shelf?")) {
       const shelfRef = doc(db, 'stores', selectedStore, 'shelves', shelfId);
       await deleteDoc(shelfRef);
+    }
+  };
+
+  const deleteStore = async (storeId) => {
+    if (confirm("Are you sure you want to delete this store?")) {
+      const storeRef = doc(db, 'stores', storeId);
+      await deleteDoc(storeRef);
     }
   };
 
@@ -212,10 +226,14 @@ function ManagerDashboard() {
     setShelfItems([...shelfItems, { name: '', quantity: '' }]);
   };
 
+  const filteredShelves = shelves.filter(shelf =>
+    shelf.items.some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-gray-100 font-sans">
       {/* Side Navigation Bar */}
-      <nav className="w-64 bg-white shadow-lg flex flex-col justify-between">
+      <nav className={`w-64 bg-white shadow-lg flex flex-col justify-between sm:w-20 md:w-64 transition-width duration-200 ${isNavOpen ? 'block' : 'hidden'} sm:block`}>
         <div className="flex flex-col p-4 space-y-4">
           {/* Navbar Logo/Image */}
           <div className="flex justify-center mb-4">
@@ -225,45 +243,56 @@ function ManagerDashboard() {
               className="w-28 h-28 object-contain"
             />
           </div>
-          <button className="flex items-center p-2 text-black hover:bg-gray-200 rounded" onClick={() => setSelectedStore('')}>
-            <FaHome className="mr-2" /> Home
+          <button className="sm:block md:hidden" onClick={() => setIsNavOpen(!isNavOpen)}>
+            <FaBars />
           </button>
-          {stores.map(store => (
-            <div key={store.id} className="relative">
-              <button
-                className={`flex items-center p-2 text-black hover:bg-gray-200 rounded ${selectedStore === store.id ? 'bg-gray-200' : ''}`}
-                onClick={() => setSelectedStore(store.id)}
-              >
-                <FaStore className="mr-2" /> {editingStore === store.id ? (
-                  <input
-                    type="text"
-                    value={newStoreName}
-                    onChange={(e) => setNewStoreName(e.target.value)}
-                    onBlur={() => updateStoreName(store.id)}
-                    className="text-black border-b-2 focus:outline-none"
-                  />
-                ) : (
-                  store.name
+          <div className={`${isNavOpen ? 'block' : 'hidden'} sm:block`}>
+            <button className="flex items-center p-2 text-black hover:bg-gray-200 rounded" onClick={() => setSelectedStore('')}>
+              <FaHome className="mr-2" /> Home
+            </button>
+            {stores.map(store => (
+              <div key={store.id} className="relative">
+                <button
+                  className={`flex items-center p-2 text-black hover:bg-gray-200 rounded ${selectedStore === store.id ? 'bg-gray-200' : ''}`}
+                  onClick={() => setSelectedStore(store.id)}
+                >
+                  <FaStore className="mr-2" /> {editingStore === store.id ? (
+                    <input
+                      type="text"
+                      value={newStoreName}
+                      onChange={(e) => setNewStoreName(e.target.value)}
+                      onBlur={() => updateStoreName(store.id)}
+                      className="text-black border-b-2 focus:outline-none"
+                    />
+                  ) : (
+                    store.name
+                  )}
+                </button>
+                <button
+                  className="absolute right-2 top-2 text-gray-700 hover:text-gray-500 focus:outline-none dropdown-button"
+                  onClick={() => setShowStoreOptions(showStoreOptions === store.id ? null : store.id)}
+                >
+                  <FaEllipsisV />
+                </button>
+                {showStoreOptions === store.id && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-10 dropdown-button">
+                    <button
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setEditingStore(store.id)}
+                    >
+                      Edit Store Name
+                    </button>
+                    <button
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => deleteStore(store.id)}
+                    >
+                      Remove Store
+                    </button>
+                  </div>
                 )}
-              </button>
-              <button
-                className="absolute right-2 top-2 text-gray-700 hover:text-gray-500 focus:outline-none dropdown-button"
-                onClick={() => setShowStoreOptions(showStoreOptions === store.id ? null : store.id)}
-              >
-                <FaEllipsisV />
-              </button>
-              {showStoreOptions === store.id && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-10 dropdown-button">
-                  <button
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setEditingStore(store.id)}
-                  >
-                    Edit Store Name
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
         </div>
         <div className="p-4">
           {/* Add Store Button */}
@@ -282,7 +311,7 @@ function ManagerDashboard() {
           </button>
         </div>
       </nav>
-  
+
       {/* Main Content Area */}
       <div className="flex-1 p-6">
         {!selectedStore ? (
@@ -299,107 +328,120 @@ function ManagerDashboard() {
           </div>
         ) : (
           <>
-            <div className="text-3xl font-semibold mb-8 text-black">Store: {stores.find(store => store.id === selectedStore)?.name}</div>
-            {/* Shelves Container */}
-            <div className="bg-white p-6 shadow-lg rounded-lg">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Add Shelf Card */}
-                <div
-                  className="bg-gray-100 p-6 shadow rounded-lg flex items-center justify-center cursor-pointer"
-                  onClick={openAddShelfModal}
-                >
-                  <div className="text-center">
-                    <div className="text-xl font-semibold text-black mb-4">Add Shelf</div>
-                    <FaPlus className="text-3xl text-gray-700 mx-auto" />
-                  </div>
+            <div className="flex justify-between items-center mb-4">
+              <div className="text-3xl font-semibold text-black">Store: {stores.find(store => store.id === selectedStore)?.name}</div>
+              <button
+                className="bg-gray-700 text-white px-4 py-2 rounded transition-colors duration-200 hover:bg-gray-600 active:bg-gray-800"
+                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              >
+                Toggle View
+              </button>
+            </div>
+            <input
+              type="text"
+              placeholder="Search for an item..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="p-2 border rounded w-full mb-4 text-black"
+            />
+
+            <div className={`bg-white p-6 shadow-lg rounded-lg overflow-x-auto ${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'flex flex-col space-y-4'}`}>
+              {/* Add Shelf Card */}
+              <div
+                className="bg-gray-100 p-6 shadow rounded-lg flex items-center justify-center cursor-pointer"
+                onClick={openAddShelfModal}
+              >
+                <div className="text-center">
+                  <div className="text-xl font-semibold text-black mb-4">Add Shelf</div>
+                  <FaPlus className="text-3xl text-gray-700 mx-auto" />
                 </div>
-  
-                {shelves.map(shelf => (
-                  <div
-                    key={shelf.id}
-                    className="bg-white p-6 shadow rounded-lg relative"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      {editingShelf === shelf.id ? (
-                        <input
-                          type="text"
-                          value={newShelfName}
-                          onChange={(e) => setNewShelfName(e.target.value)}
-                          onBlur={() => updateShelfName(shelf.id)}
-                          className="text-xl font-semibold text-black border-b-2 focus:outline-none"
-                        />
-                      ) : (
-                        <div className="text-xl font-semibold text-black">{shelf.name || `Shelf ${shelf.id}`}</div>
-                      )}
-                      <div className="relative">
-                        <button
-                          className="text-gray-700 hover:text-gray-500 focus:outline-none dropdown-button"
-                          onClick={() => setShowShelfOptions(showShelfOptions === shelf.id ? null : shelf.id)}
-                        >
-                          <FaEllipsisV />
-                        </button>
-                        {showShelfOptions === shelf.id && (
-                          <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-10 dropdown-button">
-                            <button
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                              onClick={() => setEditingShelf(shelf.id)}
-                            >
-                              Edit Name
-                            </button>
-                            <button
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                              onClick={() => deleteShelf(shelf.id)}
-                            >
-                              Remove Shelf
-                            </button>
-                            <button
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                              onClick={() => openAddItemModal(shelf.id)}
-                            >
-                              Add Item
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-  
-                    {shelf.items && shelf.items.length > 0 ? (
-                      <ul className="mb-4">
-                        {shelf.items.map((item, index) => (
-                          <li key={item.id} className="mb-2">
-                            <div className="flex justify-between items-center">
-                              <div className="text-black">{item.name}</div>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-black">Qty: {item.quantity}</span>
-                                <button
-                                  className="bg-gray-700 text-white px-2 py-1 rounded transition-colors duration-200 hover:bg-gray-600 active:bg-gray-800"
-                                  onClick={() => incrementItem(shelf.id, item.id, item.quantity)}
-                                >
-                                  +
-                                </button>
-                                <button
-                                  className="bg-gray-700 text-white px-2 py-1 rounded transition-colors duration-200 hover:bg-gray-600 active:bg-gray-800"
-                                  onClick={() => decrementItem(shelf.id, item.id, item.quantity)}
-                                >
-                                  -
-                                </button>
-                              </div>
-                            </div>
-                            <hr className="border-t border-gray-300 mt-2" />
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <div className="text-gray-500 mb-4">No items in this shelf.</div>
-                    )}
-                  </div>
-                ))}
               </div>
+
+              {filteredShelves.map(shelf => (
+                <div
+                  key={shelf.id}
+                  className="min-w-[200px] bg-white p-6 shadow rounded-lg relative"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    {editingShelf === shelf.id ? (
+                      <input
+                        type="text"
+                        value={newShelfName}
+                        onChange={(e) => setNewShelfName(e.target.value)}
+                        onBlur={() => updateShelfName(shelf.id)}
+                        className="text-xl font-semibold text-black border-b-2 focus:outline-none"
+                      />
+                    ) : (
+                      <div className="text-xl font-semibold text-black">{shelf.name || `Shelf ${shelf.id}`}</div>
+                    )}
+                    <div className="relative">
+                      <button
+                        className="text-gray-700 hover:text-gray-500 focus:outline-none dropdown-button"
+                        onClick={() => setShowShelfOptions(showShelfOptions === shelf.id ? null : shelf.id)}
+                      >
+                        <FaEllipsisV />
+                      </button>
+                      {showShelfOptions === shelf.id && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-10 dropdown-button">
+                          <button
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setEditingShelf(shelf.id)}
+                          >
+                            Edit Name
+                          </button>
+                          <button
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => deleteShelf(shelf.id)}
+                          >
+                            Remove Shelf
+                          </button>
+                          <button
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => openAddItemModal(shelf.id)}
+                          >
+                            Add Item
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {shelf.items && shelf.items.length > 0 ? (
+                    <ul className="mb-4">
+                      {shelf.items.map((item, index) => (
+                        <li key={item.id} className="mb-2">
+                          <div className="flex justify-between items-center">
+                            <div className="text-black">{item.name}</div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-black">Qty: {item.quantity}</span>
+                              <button
+                                className="bg-gray-700 text-white px-2 py-1 rounded transition-colors duration-200 hover:bg-gray-600 active:bg-gray-800"
+                                onClick={() => incrementItem(shelf.id, item.id, item.quantity)}
+                              >
+                                +
+                              </button>
+                              <button
+                                className="bg-gray-700 text-white px-2 py-1 rounded transition-colors duration-200 hover:bg-gray-600 active:bg-gray-800"
+                                onClick={() => decrementItem(shelf.id, item.id, item.quantity)}
+                              >
+                                -
+                              </button>
+                            </div>
+                          </div>
+                          <hr className="border-t border-gray-300 mt-2" />
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-gray-500 mb-4">No items in this shelf.</div>
+                  )}
+                </div>
+              ))}
             </div>
           </>
         )}
       </div>
-  
+
       {/* Add Store Modal */}
       {isAddStoreModalOpen && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-20">
@@ -429,7 +471,7 @@ function ManagerDashboard() {
           </div>
         </div>
       )}
-  
+
       {/* Add Item Modal */}
       {isAddItemModalOpen && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-20">
@@ -466,7 +508,7 @@ function ManagerDashboard() {
           </div>
         </div>
       )}
-  
+
       {/* Add Shelf Modal */}
       {isAddShelfModalOpen && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-20">
@@ -522,10 +564,6 @@ function ManagerDashboard() {
       )}
     </div>
   );
-  
-
 }
 
 export default ManagerDashboard;
-
-
