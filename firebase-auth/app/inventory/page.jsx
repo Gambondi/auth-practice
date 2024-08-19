@@ -32,18 +32,17 @@ function ManagerDashboard() {
   const [viewMode, setViewMode] = useState('grid');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Ensure sessionStorage is only accessed in the browser
   useEffect(() => {
     if (typeof window !== "undefined") {
       const session = sessionStorage.getItem('user');
       setUserSession(session);
-    }
-  }, []);
 
-  useEffect(() => {
-    if (!user && !userSession) {
-      router.push('/sign-in');
+      if (!user && !session) {
+        router.push('/sign-in');
+      }
     }
-  }, [user, userSession, router]);
+  }, [user, router]);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'stores'), (snapshot) => {
@@ -64,11 +63,7 @@ function ManagerDashboard() {
             items: [], // Initialize items to avoid undefined
           }));
 
-          shelvesData.sort((a, b) => {
-            if (a.name.toLowerCase() < b.name.toLowerCase()) return -1;
-            if (a.name.toLowerCase() > b.name.toLowerCase()) return 1;
-            return 0;
-          });
+          shelvesData.sort((a, b) => a.name.localeCompare(b.name));
 
           setShelves(shelvesData);
 
@@ -94,9 +89,7 @@ function ManagerDashboard() {
 
   const createStore = async () => {
     if (newStoreName) {
-      await addDoc(collection(db, 'stores'), {
-        name: newStoreName,
-      });
+      await addDoc(collection(db, 'stores'), { name: newStoreName });
       setNewStoreName('');
     }
   };
@@ -198,17 +191,12 @@ function ManagerDashboard() {
 
   const addShelf = async () => {
     if (newShelfName && shelfItems.length > 0) {
-      const shelfDoc = await addDoc(collection(db, 'stores', selectedStore, 'shelves'), {
-        name: newShelfName,
-      });
+      const shelfDoc = await addDoc(collection(db, 'stores', selectedStore, 'shelves'), { name: newShelfName });
 
       const itemsCollection = collection(db, 'stores', selectedStore, 'shelves', shelfDoc.id, 'items');
       for (let item of shelfItems) {
         if (item.name && item.quantity) {
-          await addDoc(itemsCollection, {
-            name: item.name,
-            quantity: parseInt(item.quantity),
-          });
+          await addDoc(itemsCollection, { name: item.name, quantity: parseInt(item.quantity) });
         }
       }
 
@@ -229,6 +217,10 @@ function ManagerDashboard() {
   const filteredShelves = shelves.filter(shelf =>
     shelf.items.some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  if (!user && !userSession) {
+    return null; // Render nothing until the session check is complete
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-100 font-sans">
